@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soul Journal — by Hati Sedar</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body,#root{min-height:100vh;}
+body{font-family:'Inter',sans-serif;background:#fff;color:#1A1A1A;}
+input[type=range]{width:100%;height:5px;border-radius:100px;border:none;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,#D4A89A,#C4975A,#7A8C6E);outline:none;padding:0;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#1A1A1A;border:2px solid #C4975A;cursor:pointer;}
+.cause-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.cause-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FAFAF8;border-radius:10px;border:1.5px solid rgba(0,0,0,.08);cursor:pointer;transition:all .18s;font-family:inherit;text-align:left;}
+.cause-btn.sel{border-color:#C4975A;background:rgba(196,151,90,.06);}
+.cause-box{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cause-btn.sel .cause-box{background:#C4975A;border-color:#C4975A;}
+.mood-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0;}
+.mood-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 12px;border-radius:12px;border:1.5px solid rgba(0,0,0,.08);background:#fff;cursor:pointer;transition:all .18s;font-family:inherit;}
+.mood-btn.sel{border-color:#C4975A;background:rgba(196,151,90,.07);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.fade{animation:fadeUp .35s ease both;}
+.adm-table{width:100%;border-collapse:collapse;}
+.adm-table th{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#9A9A9A;text-align:left;padding:10px 14px;border-bottom:1px solid rgba(0,0,0,.06);}
+.adm-table td{padding:12px 14px;border-bottom:1px solid rgba(0,0,0,.04);font-size:13px;color:#1A1A1A;vertical-align:middle;}
+.adm-table tr:hover td{background:rgba(196,151,90,.03);}
+</style>
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Soul Journal">
+<meta name="theme-color" content="#C4975A">
+</head>
+
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+/* CONFIG */
+const ADMIN_PW      = "admin@souljournal2026";
+const ANTHROPIC_KEY = "MASUKKAN_API_KEY_ANDA";
+const BUYERS_KEY    = "sj_buyers";
+const SESSION_KEY   = "sj_session";
+const JOURNAL_PRE   = "sj_j_";
+
+/* COLOURS */
+const C = {
+  white:"#FFFFFF", off:"#FAFAF8", warm:"#F7F4EF",
+  gold:"#C4975A", goldL:"#E8C98A", goldD:"#9A7040",
+  sage:"#7A8C6E", sageL:"#B8C4AD",
+  ink:"#1A1A1A", mid:"#4A4A4A", muted:"#9A9A9A",
+  blush:"#D4A89A", teal:"#5B8A8B",
+  border:"rgba(0,0,0,0.08)",
+};
+
+const MOODS = [
+  {e:"😔",l:"Heavy",v:1},{e:"😟",l:"Anxious",v:2},{e:"😐",l:"Neutral",v:3},
+  {e:"🙂",l:"Calm",v:4},{e:"😊",l:"Grateful",v:5},
+];
+const CAUSES = [
+  {id:"family",label:"Family",emoji:"🏠"},{id:"finances",label:"Finances",emoji:"💰"},
+  {id:"health",label:"Health",emoji:"❤️"},{id:"relationships",label:"Relationships",emoji:"🤝"},
+  {id:"work",label:"Work",emoji:"📋"},{id:"self",label:"Self",emoji:"🪞"},
+  {id:"children",label:"Children",emoji:"👶"},{id:"other",label:"Other",emoji:"✦"},
+];
+const DUAS = {
+  "😔":{dua:"Allahumma inni a'udhu bika minal hammi wal hazan",src:"Dua for relief from grief"},
+  "😟":{dua:"Hasbunallahu wa ni'mal wakeel",src:"Allah is enough for us"},
+  "😐":{dua:"Allahumma a'inni 'ala dhikrika wa shukrika",src:"Dua for guidance"},
+  "🙂":{dua:"Alhamdulillahi alladhi bi ni'matihi tatimmus-salihaat",src:"Dua of gratitude"},
+  "😊":{dua:"Alhamdulillahi rabbil alamin",src:"Greatest gratitude"},
+};
+
+/* HELPERS */
+const today   = () => new Date().toISOString().slice(0,10);
+const fmtDate = d => d ? new Date(d+"T00:00:00").toLocaleDateString("en-US",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) : "";
+const fmtShort= d => d ? new Date(d+"T00:00:00").toLocaleDateString("en-US",{day:"numeric",month:"short",year:"numeric"}) : "";
+const mlbl    = ym => { const [y,m]=ym.split("-"); return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+m-1]+" "+y; };
+const genPW   = () => { const w=["soul","light","peace","grace","faith","bloom","dawn","still","pure","calm"]; return w[Math.floor(Math.random()*w.length)]+Math.floor(1000+Math.random()*9000); };
+const genId   = () => Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const sget    = k => { try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch{ return null; } };
+const sset    = (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} };
+
+const DEMO_BUYERS = [
+  {id:"demo1",name:"Demo User 1",email:"",password:"soul1234",createdAt:today(),active:true},
+  {id:"demo2",name:"Demo User 2",email:"",password:"peace5678",createdAt:today(),active:true},
+];
+const sgetBuyers = () => {
+  try{
+    const stored=JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
+    const ids=stored.map(b=>b.id);
+    return [...stored,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
+  }catch{ return DEMO_BUYERS; }
+};
+
+/* INLINE STYLES */
+const S = {
+  /* Layout */
+  page:{maxWidth:640,margin:"0 auto",padding:"24px 20px 100px"},
+  card:{background:C.off,borderRadius:18,padding:22,marginBottom:14,border:"1px solid rgba(0,0,0,.06)"},
+  cardG:{background:C.off,borderRadius:18,padding:22,marginBottom:14,borderLeft:"3px solid "+C.gold},
+  cardS:{background:C.off,borderRadius:18,padding:22,marginBottom:14,borderLeft:"3px solid "+C.sage},
+  cardB:{background:C.off,borderRadius:18,padding:22,marginBottom:14,borderLeft:"3px solid "+C.blush},
+  cardD:{background:C.off,borderRadius:18,padding:22,marginBottom:14,borderLeft:"3px solid "+C.ink},
+  cardT:{background:C.off,borderRadius:18,padding:22,marginBottom:14,borderLeft:"3px solid "+C.teal},
+  /* Typography */
+  tag:{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:3,color:C.gold,marginBottom:6,display:"block",textTransform:"uppercase"},
+  lbl:{fontSize:12,fontWeight:600,color:C.mid,marginBottom:6,display:"block"},
+  hint:{fontSize:11,color:C.muted,fontStyle:"italic",marginBottom:8,display:"block"},
+  pgTitle:{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:300,marginBottom:4,color:C.ink},
+  pgSub:{fontSize:11,color:C.muted,fontFamily:"'DM Mono',monospace",letterSpacing:1,marginBottom:24,display:"block"},
+  /* Inputs */
+  inp:{width:"100%",border:"1px solid rgba(0,0,0,.1)",borderRadius:10,padding:"11px 14px",fontSize:14,color:C.ink,background:C.white,fontFamily:"inherit",resize:"none",outline:"none",lineHeight:1.6,boxSizing:"border-box"},
+  /* Buttons */
+  btnDark:{padding:"12px 24px",borderRadius:100,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:"inherit",transition:"all .2s",border:"none",background:C.ink,color:C.white,display:"inline-flex",alignItems:"center",gap:8},
+  btnGold:{padding:"12px 24px",borderRadius:100,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:"inherit",transition:"all .2s",border:"none",background:C.gold,color:C.ink,display:"inline-flex",alignItems:"center",gap:8},
+  btnOut:{padding:"12px 24px",borderRadius:100,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:"inherit",transition:"all .2s",background:"transparent",color:C.ink,border:"1.5px solid rgba(0,0,0,.15)",display:"inline-flex",alignItems:"center",gap:8},
+  btnSm:{padding:"8px 18px",fontSize:12},
+};
+
+/* LOGO */
+const Logo = ({size=44,dark=false}) => (
+  <svg width={size} height={size} viewBox="0 0 90 90" fill="none">
+    <circle cx="45" cy="45" r="42" fill={dark?"#1A1A1A":"#F7F4EF"} stroke="#C4975A" strokeWidth="1"/>
+    <path d="M 26 72 L 26 46 Q 26 24, 45 24 Q 64 24, 64 46 L 64 72 Z" fill="none" stroke="#C4975A" strokeWidth="1"/>
+    <line x1="45" y1="65" x2="45" y2="40" stroke="#7A8C6E" strokeWidth="1"/>
+    <path d="M 45 53 C 39 47, 35 40, 40 35 C 42 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.85"/>
+    <path d="M 45 53 C 51 47, 55 40, 50 35 C 48 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.65"/>
+    <ellipse cx="45" cy="34" rx="2" ry="3" fill="#B8C4AD" opacity="0.9"/>
+    <line x1="22" y1="72" x2="68" y2="72" stroke="#C4975A" strokeWidth="1"/>
+  </svg>
+);
+
+/* CHANGE PASSWORD MODAL */
+function ChangePwModal({buyer, onClose}) {
+  const [oldPw,setOldPw]=useState(""); const [newPw,setNewPw]=useState(""); const [confPw,setConfPw]=useState("");
+  const [err,setErr]=useState(""); const [done,setDone]=useState(false);
+  const submit=()=>{
+    setErr("");
+    if(!oldPw||!newPw||!confPw){setErr("Please fill in all fields.");return;}
+    if(oldPw.trim().toLowerCase()!==buyer.password.toLowerCase()){setErr("Current password is incorrect.");return;}
+    if(newPw.trim().length<6){setErr("New password must be at least 6 characters.");return;}
+    if(newPw.trim()!==confPw.trim()){setErr("New passwords do not match.");return;}
+    if(newPw.trim().toLowerCase()===oldPw.trim().toLowerCase()){setErr("New password must be different.");return;}
+    try{
+      const buyers=JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
+      const updated=buyers.map(b=>b.id===buyer.id?{...b,password:newPw.trim()}:b);
+      localStorage.setItem(BUYERS_KEY,JSON.stringify(updated));
+      buyer.password=newPw.trim();
+      setDone(true);
+    }catch(e){setErr("Error saving. Please try again.");}
+  };
+  const ov={position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:24};
+  const box={background:C.white,borderRadius:20,padding:"32px 28px",maxWidth:380,width:"100%"};
+  return(
+    <div style={ov} onClick={onClose}>
+      <div style={box} onClick={e=>e.stopPropagation()}>
+        <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:300,color:C.ink,marginBottom:4}}>Change <em style={{fontStyle:"italic",color:C.gold}}>Password</em></h2>
+        <p style={{fontSize:12,color:C.muted,marginBottom:24,fontFamily:"'DM Mono',monospace"}}>SOUL JOURNAL - ACCOUNT SECURITY</p>
+        {!done ? <>
+          {err&&<div style={{padding:"10px 14px",background:"rgba(200,50,50,.08)",border:"1px solid rgba(200,50,50,.2)",borderRadius:8,fontSize:12,color:"#cc4444",marginBottom:14}}>{err}</div>}
+          <label style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.muted,marginBottom:6,display:"block"}}>CURRENT PASSWORD</label>
+          <input style={{...S.inp,marginBottom:14}} type="password" placeholder="Enter current password..." value={oldPw} onChange={e=>{setOldPw(e.target.value);setErr("");}}/>
+          <label style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.muted,marginBottom:6,display:"block"}}>NEW PASSWORD</label>
+          <input style={{...S.inp,marginBottom:14}} type="password" placeholder="Min. 6 characters..." value={newPw} onChange={e=>{setNewPw(e.target.value);setErr("");}}/>
+          <label style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.muted,marginBottom:6,display:"block"}}>CONFIRM NEW PASSWORD</label>
+          <input style={{...S.inp,marginBottom:20}} type="password" placeholder="Re-enter new password..." value={confPw} onChange={e=>{setConfPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&submit()}/>
+          <div style={{display:"flex",gap:10}}>
+            <button style={{...S.btnOut,...S.btnSm,flex:1,justifyContent:"center"}} onClick={onClose}>Cancel</button>
+            <button style={{...S.btnDark,...S.btnSm,flex:2,justifyContent:"center"}} onClick={submit}>Update Password</button>
+          </div>
+        </> : <div style={{textAlign:"center",padding:"20px 0"}}>
+          <div style={{fontSize:48,marginBottom:12}}>✅</div>
+          <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:C.ink,marginBottom:8}}>Password Updated!</h3>
+          <p style={{fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.7}}>Use your new password next time you sign in.</p>
+          <div style={{background:C.warm,borderRadius:12,padding:"10px 16px",fontFamily:"'DM Mono',monospace",fontSize:12,color:C.mid,border:"1px solid rgba(196,151,90,.15)"}}>
+            New password: <strong style={{color:C.goldD}}>{newPw}</strong>
+          </div>
+          <button style={{...S.btnGold,marginTop:20,justifyContent:"center",width:"100%"}} onClick={onClose}>Done</button>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+/* SESSION FOOTER */
+function Footer({onLogout,onChangePw}) {
+  return(
+    <div style={{maxWidth:640,margin:"0 auto",padding:"0 20px 48px",textAlign:"center"}}>
+      <div style={{height:1,background:"rgba(0,0,0,.06)",marginBottom:24}}/>
+      <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><Logo size={32}/></div>
+      <p style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.muted,marginBottom:16}}>SOUL JOURNAL - BY HATI SEDAR</p>
+      <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+        <button style={{...S.btnGold,fontSize:13,padding:"12px 28px"}} onClick={onLogout}>🔒 End Session</button>
+        <button style={{...S.btnOut,fontSize:13,padding:"12px 28px"}} onClick={onChangePw}>🔑 Change Password</button>
+      </div>
+      <p style={{fontSize:11,color:C.muted,marginTop:10,fontFamily:"'DM Mono',monospace"}}>Your data is saved safely</p>
+    </div>
+  );
+}
+
+/* ADMIN */
+function Admin({onLogout}) {
+  const [buyers,setBuyers]=useState([]);
+  const [search,setSearch]=useState("");
+  const [name,setName]=useState(""); const [email,setEmail]=useState(""); const [pw,setPw]=useState(genPW());
+  const [toast,setToast]=useState(""); const [cfm,setCfm]=useState(null);
+  useEffect(()=>{setBuyers(sget(BUYERS_KEY)||[]);},[]);
+  const save=list=>{setBuyers(list);sset(BUYERS_KEY,list);};
+  const showToast=msg=>{setToast(msg);setTimeout(()=>setToast(""),3000);};
+  const addBuyer=()=>{
+    if(!name.trim()||!pw.trim()) return;
+    save([...buyers,{id:genId(),name:name.trim(),email:email.trim(),password:pw.trim(),createdAt:today(),active:true}]);
+    setName(""); setEmail(""); setPw(genPW()); showToast("Buyer added!");
+  };
+  const toggle=id=>save(buyers.map(b=>b.id===id?{...b,active:!b.active}:b));
+  const resetPw=id=>{const p=genPW();save(buyers.map(b=>b.id===id?{...b,password:p}:b));showToast("New password: "+p);};
+  const del=id=>{save(buyers.filter(b=>b.id!==id));setCfm(null);showToast("Buyer removed.");};
+  const copy=p=>{try{navigator.clipboard.writeText(p);}catch{}showToast("Copied: "+p);};
+  const shown=buyers.filter(b=>b.name.toLowerCase().includes(search.toLowerCase())||b.password.toLowerCase().includes(search.toLowerCase()));
+  const active=buyers.filter(b=>b.active).length;
+  const inp={width:"100%",padding:"10px 13px",background:C.off,border:"1px solid rgba(0,0,0,.1)",borderRadius:10,color:C.ink,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
+  return(
+    <div style={{minHeight:"100vh",background:C.off}}>
+      <div style={{background:C.white,borderBottom:"1px solid rgba(0,0,0,.06)",padding:"14px 24px",display:"flex",alignItems:"center",gap:12}}>
+        <Logo size={32}/>
+        <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic",color:C.ink}}>Soul Journal</span>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:2,color:C.white,background:C.ink,padding:"3px 10px",borderRadius:100}}>ADMIN</span>
+        <div style={{marginLeft:"auto"}}>
+          <button style={{...S.btnOut,...S.btnSm}} onClick={onLogout}>Sign Out</button>
+        </div>
+      </div>
+      <div style={{maxWidth:960,margin:"0 auto",padding:"32px 20px"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:28}}>
+          {[["Total Buyers",buyers.length,C.gold],["Active",active,C.sage],["Inactive",buyers.length-active,C.muted],["Revenue","$"+(buyers.length*10).toFixed(0),C.goldD]].map(([l,n,col])=>(
+            <div key={l} style={{background:C.white,border:"1px solid rgba(0,0,0,.08)",borderRadius:14,padding:18,textAlign:"center"}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,color:col,lineHeight:1}}>{n}</div>
+              <div style={{fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace",marginTop:4}}>{l}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{background:C.white,border:"1px solid rgba(0,0,0,.08)",borderRadius:16,padding:24,marginBottom:24}}>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:3,color:C.muted,marginBottom:16}}>ADD NEW BUYER</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:12,alignItems:"end"}}>
+            <div><label style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:2,color:C.muted,marginBottom:6,display:"block"}}>NAME</label><input style={inp} placeholder="Buyer name..." value={name} onChange={e=>setName(e.target.value)}/></div>
+            <div><label style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:2,color:C.muted,marginBottom:6,display:"block"}}>EMAIL (OPTIONAL)</label><input style={inp} placeholder="email@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></div>
+            <div><label style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:2,color:C.muted,marginBottom:6,display:"block"}}>PASSWORD <span style={{cursor:"pointer",color:C.gold}} onClick={()=>setPw(genPW())}>refresh</span></label><input style={{...inp,fontFamily:"'DM Mono',monospace",letterSpacing:1}} value={pw} onChange={e=>setPw(e.target.value)}/></div>
+            <button style={{...S.btnDark,...S.btnSm}} onClick={addBuyer} disabled={!name.trim()||!pw.trim()}>+ Add</button>
+          </div>
+        </div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:3,color:C.muted,marginBottom:14}}>ALL BUYERS ({buyers.length})</div>
+        <input style={{...inp,marginBottom:16,background:C.white}} placeholder="Search name or password..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        {shown.length===0
+          ? <div style={{textAlign:"center",padding:"48px 24px",color:C.muted}}>{buyers.length===0?"No buyers yet. Add your first buyer above!":"No results found."}</div>
+          : <div style={{background:C.white,border:"1px solid rgba(0,0,0,.08)",borderRadius:16,overflow:"hidden"}}>
+              <table className="adm-table">
+                <thead><tr><th>NAME</th><th>PASSWORD</th><th>DATE</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+                <tbody>{shown.map(b=>(
+                  <tr key={b.id}>
+                    <td><div style={{fontWeight:600}}>{b.name}</div>{b.email&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{b.email}</div>}</td>
+                    <td><button style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.gold,background:"rgba(196,151,90,.1)",padding:"4px 10px",borderRadius:6,cursor:"pointer",border:"none"}} onClick={()=>copy(b.password)}>{b.password}</button></td>
+                    <td style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted}}>{fmtShort(b.createdAt)}</td>
+                    <td><span style={{background:b.active?"rgba(122,140,110,.1)":"rgba(0,0,0,.06)",color:b.active?C.sage:C.muted,fontSize:10,padding:"3px 10px",borderRadius:100,fontFamily:"'DM Mono',monospace"}}>{b.active?"Active":"Inactive"}</span></td>
+                    <td><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                      {[["Copy PW","rgba(196,151,90,.1)",C.goldD,()=>copy(b.password)],["Reset PW","rgba(91,138,139,.1)",C.teal,()=>resetPw(b.id)],[b.active?"Deactivate":"Activate","rgba(0,0,0,.05)",C.muted,()=>toggle(b.id)],["Remove","rgba(200,50,50,.08)","#cc4444",()=>setCfm({id:b.id,name:b.name})]].map(([l,bg,col,fn])=>(
+                        <button key={l} style={{background:bg,color:col,border:"none",fontSize:10,padding:"5px 10px",borderRadius:8,cursor:"pointer"}} onClick={fn}>{l}</button>
+                      ))}
+                    </div></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>}
+      </div>
+      {cfm&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+        <div style={{background:C.white,borderRadius:20,padding:32,maxWidth:360,width:"100%",textAlign:"center"}}>
+          <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:C.ink,marginBottom:8}}>Remove Buyer?</h3>
+          <p style={{fontSize:13,color:C.muted,marginBottom:24,lineHeight:1.6}}>This will permanently remove <strong>{cfm.name}</strong>.</p>
+          <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+            <button style={{...S.btnOut,...S.btnSm}} onClick={()=>setCfm(null)}>Cancel</button>
+            <button style={{...S.btnSm,background:"#cc4444",color:C.white,border:"none",borderRadius:100,cursor:"pointer",fontFamily:"inherit",fontWeight:500}} onClick={()=>del(cfm.id)}>Remove</button>
+          </div>
+        </div>
+      </div>}
+      {toast&&<div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:C.ink,color:C.white,padding:"10px 22px",borderRadius:100,fontSize:12,fontFamily:"'DM Mono',monospace",zIndex:999,whiteSpace:"nowrap"}}>{toast}</div>}
+    </div>
+  );
+}
+
+/* GATE */
+function Gate({onBuyer,onAdmin}) {
+  const [pw,setPw]=useState(""); const [err,setErr]=useState(""); const [busy,setBusy]=useState(false);
+  const [adm,setAdm]=useState(false); const [apw,setApw]=useState("");
+  const login=()=>{
+    if(!pw.trim()){setErr("Please enter your access password.");return;}
+    setBusy(true); setErr("");
+    setTimeout(()=>{
+      const buyers=sgetBuyers();
+      const b=buyers.find(x=>x.active&&x.password.toLowerCase()===pw.trim().toLowerCase());
+      if(b){onBuyer(b);}else{setErr("Invalid or inactive password. Please check your purchase confirmation.");}
+      setBusy(false);
+    },500);
+  };
+  const adminLogin=()=>{if(apw===ADMIN_PW){onAdmin();}else{setErr("Incorrect admin password.");}};
+  const gateStyle={minHeight:"100vh",background:C.white,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 24px",position:"relative"};
+  const inp2={width:"100%",padding:"14px 16px",background:C.off,border:"1px solid rgba(196,151,90,.3)",borderRadius:12,color:C.ink,fontSize:15,fontFamily:"inherit",outline:"none",textAlign:"center",letterSpacing:2,boxSizing:"border-box",marginBottom:14};
+  return(
+    <div style={gateStyle}>
+      <div style={{width:"100%",maxWidth:400,textAlign:"center",position:"relative",zIndex:1}}>
+        {!adm ? <>
+          <div style={{marginBottom:24}}><Logo size={60}/></div>
+          <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontWeight:300,color:C.ink,marginBottom:4}}>Soul <em style={{fontStyle:"italic",color:C.gold}}>Journal</em></h1>
+          <p style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:3,color:C.muted,marginBottom:28}}>BY HATI SEDAR</p>
+          <p style={{fontSize:13,color:C.muted,marginBottom:28,lineHeight:1.7}}>Enter your access password.<br/>Sent with your purchase confirmation.</p>
+          <label style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.muted,textAlign:"left",marginBottom:8,display:"block"}}>ACCESS PASSWORD</label>
+          <input style={inp2} type="password" placeholder="Enter your password..." value={pw}
+            onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&login()}/>
+          <button style={{...S.btnDark,width:"100%",justifyContent:"center",marginTop:4}} onClick={login} disabled={busy}>{busy?"Checking...":"Access Journal"}</button>
+          {err&&<div style={{marginTop:10,padding:"10px 14px",background:"#FFF0F0",border:"1px solid #FFCCCC",borderRadius:8,fontSize:12,color:"#CC4444",textAlign:"center"}}>{err}</div>}
+          <p style={{fontSize:12,color:C.muted,marginTop:20,lineHeight:1.7}}>Don not have access? Purchase Soul Journal to get started.</p>
+          <div style={{marginTop:20,fontSize:10,color:"rgba(0,0,0,.08)",cursor:"pointer",fontFamily:"'DM Mono',monospace"}} onClick={()=>{setAdm(true);setErr("");}}>. . .</div>
+        </> : <>
+          <div style={{marginBottom:24}}><Logo size={48}/></div>
+          <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:300,color:C.ink,marginBottom:4}}>Admin <em style={{fontStyle:"italic",color:C.gold}}>Access</em></h1>
+          <p style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:3,color:C.muted,marginBottom:24}}>SOUL JOURNAL</p>
+          <label style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.muted,textAlign:"left",marginBottom:8,display:"block"}}>ADMIN PASSWORD</label>
+          <input style={inp2} type="password" placeholder="Admin password..." value={apw}
+            onChange={e=>{setApw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&adminLogin()}/>
+          <button style={{...S.btnDark,width:"100%",justifyContent:"center",marginTop:4}} onClick={adminLogin}>Enter Admin</button>
+          {err&&<div style={{marginTop:10,padding:"10px 14px",background:"#FFF0F0",border:"1px solid #FFCCCC",borderRadius:8,fontSize:12,color:"#CC4444",textAlign:"center"}}>{err}</div>}
+          <button style={{marginTop:16,background:"none",border:"none",color:C.muted,fontSize:12,cursor:"pointer",fontFamily:"'DM Mono',monospace"}} onClick={()=>{setAdm(false);setErr("");}}>Back</button>
+        </>}
+        <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontStyle:"italic",color:"#C8C8C8",marginTop:36,lineHeight:1.7}}>
+          Take account of yourselves before you are taken to account.<br/>
+          <span style={{fontSize:11,fontStyle:"normal",fontFamily:"'DM Mono',monospace"}}>- Umar ibn Al-Khattab r.a.</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* HOME */
+function Home({entries,nav,name,buyer,onChangePw,onLogout}) {
+  const [showPw,setShowPw]=useState(false);
+  const DAYS=["M","T","W","T","F","S","S"]; const td=today();
+  const streak=()=>{let s=0,d=new Date();for(let i=0;i<31;i++){const k=d.toISOString().slice(0,10);if(entries[k]){s++;d.setDate(d.getDate()-1);}else break;}return s;};
+  const tot=Object.keys(entries).length;
+  const last7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const k=d.toISOString().slice(0,10);return{key:k,done:!!entries[k],isToday:k===td,lbl:DAYS[d.getDay()===0?6:d.getDay()-1]};});
+  const hr=new Date().getHours();
+  const dayKey=Object.keys(entries).filter(k=>k.startsWith(today().slice(0,7))).length;
+  return(<div className="fade">
+    <div style={{...S.page}}>
+      <div style={{background:C.ink,borderRadius:20,padding:"28px 24px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",fontSize:180,color:C.gold,opacity:.04,right:-30,top:-30,lineHeight:1}}>*</div>
+        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
+          <Logo size={44} dark={true}/>
+          <div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:C.white,fontWeight:300,lineHeight:1.2}}>
+              Good {hr<12?"Morning":hr<17?"Afternoon":"Evening"}, <em style={{fontStyle:"italic",color:C.goldL}}>{name.split(" ")[0]}</em>
+            </div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,.4)",marginTop:2}}>Make today meaningful</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:6,marginBottom:18}}>
+          {last7.map(d=>(
+            <div key={d.key} style={{width:30,height:30,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:600,fontFamily:"'DM Mono',monospace",background:d.done?C.gold:d.isToday?"rgba(196,151,90,.15)":"rgba(255,255,255,.06)",color:d.done?C.ink:d.isToday?C.gold:"rgba(255,255,255,.2)",border:d.isToday?"1.5px solid "+C.gold:"none"}}>{d.lbl}</div>
+          ))}
+        </div>
+        <button style={{...S.btnGold,width:"100%",justifyContent:"center"}} onClick={()=>nav("daily")}>
+          {entries[td]?"Continue Writing":"Begin Today Reflection"}
+        </button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
+        {[[streak(),"STREAK",C.gold],[tot,"ENTRIES",C.sage],[entries[td]&&entries[td].mood?entries[td].mood:"--","MOOD",C.blush]].map(([n,l,col])=>(
+          <div key={l} style={{background:C.off,borderRadius:14,padding:16,textAlign:"center",border:"1px solid rgba(0,0,0,.06)"}}>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,color:col,lineHeight:1}}>{n}</div>
+            <div style={{fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace",marginTop:4}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{background:C.off,borderRadius:14,padding:"18px 20px",marginBottom:14,textAlign:"center",border:"1px solid rgba(0,0,0,.06)"}}>
+        <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",color:C.mid,lineHeight:1.6}}>Take account of yourselves before you are taken to account.</p>
+        <small style={{fontSize:10,color:C.muted,marginTop:6,display:"block",fontFamily:"'DM Mono',monospace"}}>- Umar ibn Al-Khattab r.a.</small>
+      </div>
+      <div style={{...S.card,textAlign:"center"}}>
+        <div style={{...S.tag,marginBottom:8}}>MONTHLY AI REFLECTION</div>
+        <p style={{fontSize:13,color:C.muted,marginBottom:14}}>{dayKey} entries this month. End of month - generate your AI reflection.</p>
+        <button style={{...S.btnDark}} onClick={()=>nav("reflection")}>View AI Reflection</button>
+      </div>
+    </div>
+    {showPw&&<ChangePwModal buyer={buyer} onClose={()=>setShowPw(false)}/>}
+    <Footer onLogout={onLogout} onChangePw={()=>setShowPw(true)}/>
+  </div>);
+}
+
+/* DAILY */
+function Daily({entries,onSave,buyer,onLogout}) {
+  const [showPw,setShowPw]=useState(false);
+  const [sel,setSel]=useState(today()); const e=entries[sel]||{}; const f=(k,v)=>onSave(sel,{...e,[k]:v});
+  const dua=e.mood?DUAS[e.mood]:null;
+  return(<div className="fade">
+    <div style={S.page}>
+      <div style={S.pgTitle}>Daily <em style={{fontStyle:"italic",color:C.gold}}>Reflection</em></div>
+      <span style={S.pgSub}>{fmtDate(sel)}</span>
+      <div style={S.cardG}>
+        <span style={S.tag}>SELECT DATE</span>
+        <input style={S.inp} type="date" value={sel} max={today()} onChange={ev=>setSel(ev.target.value)}/>
+      </div>
+      <div style={S.cardG}>
+        <span style={S.tag}>Morning Intention</span>
+        <span style={S.lbl}>My intention for today:</span>
+        <span style={S.hint}>What do I wish to achieve and be mindful of today?</span>
+        <textarea style={{...S.inp,minHeight:72,marginBottom:12}} placeholder="Ya Allah, today I intend to..." value={e.intention||""} onChange={ev=>f("intention",ev.target.value)}/>
+        <span style={S.lbl}>One good deed I will do:</span>
+        <textarea style={{...S.inp,minHeight:52}} placeholder="A small but meaningful act..." value={e.goodDeed||""} onChange={ev=>f("goodDeed",ev.target.value)}/>
+      </div>
+      <div style={S.cardB}>
+        <span style={S.tag}>How Is My Heart Today?</span>
+        <div className="mood-row">
+          {MOODS.map(m=>(
+            <button key={m.e} className={"mood-btn"+(e.mood===m.e?" sel":"")} onClick={()=>f("mood",m.e)}>
+              <span style={{fontSize:22}}>{m.e}</span>
+              <span style={{fontSize:9,color:C.muted,fontFamily:"'DM Mono',monospace"}}>{m.l}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      {dua&&<div style={{background:C.ink,borderRadius:14,padding:20,margin:"14px 0",textAlign:"center"}}>
+        <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",color:C.goldL,lineHeight:1.6,marginBottom:6}}>"{dua.dua}"</p>
+        <small style={{fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace",letterSpacing:1}}>{dua.src}</small>
+      </div>}
+      <div style={S.cardS}>
+        <span style={S.tag}>3 Things I Am Grateful For</span>
+        {[1,2,3].map(i=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+            <div style={{width:22,height:22,borderRadius:"50%",background:C.gold,color:C.ink,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i}</div>
+            <input style={S.inp} type="text" placeholder="A blessing from Allah today..." value={e["g"+i]||""} onChange={ev=>f("g"+i,ev.target.value)}/>
+          </div>
+        ))}
+      </div>
+      <div style={S.cardT}>
+        <span style={S.tag}>Emotion Tracker</span>
+        <span style={S.lbl}>Intensity of feeling (1-10):</span>
+        <div style={{textAlign:"center",fontFamily:"'Cormorant Garamond',serif",fontSize:42,color:C.gold,margin:"8px 0",lineHeight:1}}>{e.intensity||5} <span style={{fontSize:16,color:C.muted}}>/10</span></div>
+        <div style={{margin:"8px 0 4px"}}>
+          <input type="range" min={1} max={10} step={1} value={e.intensity||5} onChange={ev=>f("intensity",+ev.target.value)}/>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace"}}>
+          <span>Mild</span><span>Intense</span>
+        </div>
+        <span style={{...S.lbl,marginTop:14}}>Root cause of emotion:</span>
+        <div className="cause-grid">
+          {CAUSES.map(cause=>(
+            <button key={cause.id} className={"cause-btn"+((e.causes||[]).includes(cause.id)?" sel":"")}
+              onClick={()=>{const cur=e.causes||[];f("causes",cur.includes(cause.id)?cur.filter(x=>x!==cause.id):[...cur,cause.id]);}}>
+              <div className="cause-box">
+                {(e.causes||[]).includes(cause.id)&&<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round"/></svg>}
+              </div>
+              <span style={{fontSize:13,color:C.mid}}>{cause.emoji} {cause.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={S.cardD}>
+        <span style={S.tag}>Evening Muhasabah</span>
+        <span style={S.lbl}>What did I accomplish today?</span>
+        <textarea style={{...S.inp,minHeight:52,marginBottom:12}} placeholder="What I am proud of today..." value={e.accomplished||""} onChange={ev=>f("accomplished",ev.target.value)}/>
+        <span style={S.lbl}>What can I improve tomorrow?</span>
+        <textarea style={{...S.inp,minHeight:52,marginBottom:12}} placeholder="What I wish to do better..." value={e.improve||""} onChange={ev=>f("improve",ev.target.value)}/>
+        <span style={S.lbl}>Pour your heart out:</span>
+        <textarea style={{...S.inp,minHeight:80}} placeholder="My heart feels..." value={e.heart||""} onChange={ev=>f("heart",ev.target.value)}/>
+      </div>
+      <div style={{background:C.ink,borderRadius:18,padding:"24px 22px",textAlign:"center",position:"relative",overflow:"hidden",marginBottom:14}}>
+        <div style={{position:"relative",zIndex:1}}>
+          <div style={{marginBottom:10,display:"flex",justifyContent:"center"}}><Logo size={36} dark={true}/></div>
+          <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontStyle:"italic",color:C.goldL,marginBottom:8,lineHeight:1.5}}>Allahumma inni as aluka husnul khatimah</p>
+          <p style={{fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace",letterSpacing:1,marginBottom:16}}>CLOSING DUA - END OF REFLECTION</p>
+          <div style={{height:1,background:"rgba(196,151,90,.2)",margin:"0 0 16px"}}/>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.sage}}>TODAY ENTRY SAVED</div>
+        </div>
+      </div>
+    </div>
+    {showPw&&<ChangePwModal buyer={buyer} onClose={()=>setShowPw(false)}/>}
+    <Footer onLogout={onLogout} onChangePw={()=>setShowPw(true)}/>
+  </div>);
+}
+
+/* HISTORY */
+function History({entries,buyer,onLogout}) {
+  const [showPw,setShowPw]=useState(false);
+  const [sel,setSel]=useState(today().slice(0,7)); const [det,setDet]=useState(null);
+  const months=[...new Set(Object.keys(entries).map(k=>k.slice(0,7)))].sort().reverse();
+  const me=Object.entries(entries).filter(([k])=>k.startsWith(sel)).sort(([a],[b])=>b.localeCompare(a));
+  return(<div className="fade">
+    <div style={S.page}>
+      <div style={S.pgTitle}>Journal <em style={{fontStyle:"italic",color:C.gold}}>History</em></div>
+      <span style={S.pgSub}>All your reflections</span>
+      {months.length===0
+        ?<div style={{textAlign:"center",padding:"48px 24px",color:C.muted}}><div style={{fontSize:48,marginBottom:12}}>📖</div><p>No entries yet.<br/>Begin your first reflection today.</p></div>
+        :<>
+          <div style={{display:"flex",gap:8,overflowX:"auto",marginBottom:20,scrollbarWidth:"none"}}>
+            {months.map(m=><button key={m} style={{padding:"7px 16px",borderRadius:100,fontSize:11,fontFamily:"'DM Mono',monospace",letterSpacing:1,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"all .2s",border:sel===m?"none":"1px solid rgba(0,0,0,.08)",background:sel===m?C.ink:C.off,color:sel===m?C.white:C.muted}} onClick={()=>setSel(m)}>{mlbl(m)}</button>)}
+          </div>
+          {me.map(([date,e])=>(
+            <div key={date} style={{background:C.off,borderRadius:14,padding:18,marginBottom:10,border:"1px solid rgba(0,0,0,.06)",cursor:"pointer"}} onClick={()=>setDet({date,e})}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:2,color:C.gold,marginBottom:6}}>{fmtDate(date).toUpperCase()}</div>
+              <div style={{fontSize:20,marginBottom:4}}>{e.mood||"📝"}</div>
+              <div style={{fontSize:13,color:C.muted,lineHeight:1.5}}>{e.intention||e.heart||"Entry saved"}</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:8}}>
+                {e.g1&&<span style={{fontSize:9,padding:"3px 9px",borderRadius:100,fontFamily:"'DM Mono',monospace",background:"rgba(122,140,110,.1)",color:C.sage}}>Gratitude</span>}
+                {e.accomplished&&<span style={{fontSize:9,padding:"3px 9px",borderRadius:100,fontFamily:"'DM Mono',monospace",background:"rgba(91,138,139,.1)",color:C.teal}}>Achievement</span>}
+              </div>
+            </div>
+          ))}
+        </>}
+    </div>
+    {det&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setDet(null)}>
+      <div style={{background:C.white,borderRadius:"24px 24px 0 0",padding:"28px 22px 48px",width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{width:40,height:4,borderRadius:100,background:"rgba(0,0,0,.1)",margin:"0 auto 20px"}}/>
+        <button style={{float:"right",background:"none",border:"none",fontSize:20,color:C.muted,cursor:"pointer"}} onClick={()=>setDet(null)}>x</button>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:2,color:C.gold,marginBottom:6}}>{fmtDate(det.date).toUpperCase()}</div>
+        <div style={{fontSize:28,margin:"8px 0"}}>{det.e.mood||"📝"}</div>
+        {det.e.intention&&<><span style={S.lbl}>Morning Intention</span><p style={{fontSize:13,color:C.mid,marginBottom:14,lineHeight:1.7}}>{det.e.intention}</p></>}
+        {(det.e.g1||det.e.g2||det.e.g3)&&<><span style={S.lbl}>Gratitude</span>{[1,2,3].map(i=>det.e["g"+i]&&<p key={i} style={{fontSize:13,color:C.mid,marginBottom:4}}>- {det.e["g"+i]}</p>)}<div style={{marginBottom:12}}/></>}
+        {det.e.accomplished&&<><span style={S.lbl}>Accomplished</span><p style={{fontSize:13,color:C.mid,marginBottom:14,lineHeight:1.7}}>{det.e.accomplished}</p></>}
+        {det.e.heart&&<><span style={S.lbl}>Heart Space</span><p style={{fontSize:13,color:C.mid,lineHeight:1.7}}>{det.e.heart}</p></>}
+      </div>
+    </div>}
+    {showPw&&<ChangePwModal buyer={buyer} onClose={()=>setShowPw(false)}/>}
+    <Footer onLogout={onLogout} onChangePw={()=>setShowPw(true)}/>
+  </div>);
+}
+
+/* AI REFLECTION */
+function Reflection({entries,summaries,onSave,buyer,onLogout}) {
+  const [showPw,setShowPw]=useState(false);
+  const [sel,setSel]=useState(today().slice(0,7)); const [busy,setBusy]=useState(false); const [err,setErr]=useState("");
+  const months=[...new Set(Object.keys(entries).map(k=>k.slice(0,7)))].sort().reverse();
+  const me=Object.entries(entries).filter(([k])=>k.startsWith(sel));
+  const ex=summaries[sel];
+  const gen=async()=>{
+    if(!me.length) return;
+    if(!ANTHROPIC_KEY||ANTHROPIC_KEY==="MASUKKAN_API_KEY_ANDA"){setErr("API key not configured.");return;}
+    setBusy(true); setErr("");
+    const lines=me.map(([d,e])=>{const p=[];
+      if(e.mood)p.push("Mood: "+e.mood+" "+(MOODS.find(m=>m.e===e.mood)||{l:""}).l);
+      if(e.intention)p.push("Intention: "+e.intention);
+      if(e.g1||e.g2||e.g3)p.push("Gratitude: "+[e.g1,e.g2,e.g3].filter(Boolean).join("; "));
+      if(e.accomplished)p.push("Accomplished: "+e.accomplished);
+      if(e.heart)p.push("Heart: "+e.heart);
+      return fmtDate(d)+": "+p.join(" | ");
+    }).join("\n\n");
+    try{
+      const r=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,
+          messages:[{role:"user",content:"You are a compassionate Islamic spiritual mentor. Analyse these journal entries from "+mlbl(sel)+" and provide a meaningful reflection in English.\n\nJOURNAL ENTRIES:\n"+lines+"\n\nRespond in this format (no markdown):\n\nTHIS MONTHS REFLECTION\n[2-3 sentences about their spiritual journey]\n\nPATTERNS OBSERVED\n[2-3 emotional patterns]\n\nYOUR STRENGTHS\n[2-3 positive observations]\n\nGUIDANCE FOR NEXT MONTH\n[2-3 Islamic suggestions]\n\nCLOSING DUA\n[A relevant verse or hadith with brief commentary]"}]
+        })
+      });
+      const data=await r.json();
+      if(data.error){setErr("API error: "+data.error.message);setBusy(false);return;}
+      const txt=(data.content||[]).map(b=>b.text||"").join("");
+      if(!txt) throw new Error("No response");
+      onSave(sel,{text:txt,generated:new Date().toISOString(),count:me.length});
+    }catch(e){setErr("Error: "+(e.message||"Please try again."));}
+    setBusy(false);
+  };
+  const fmt=txt=>txt.split(/\n(?=[A-Z][A-Z])/).filter(Boolean).map((s,i)=>{
+    const ls=s.trim().split("\n"); const h=ls[0]; const b=ls.slice(1).join("\n").trim();
+    return<div key={i} style={{marginBottom:20}}>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:3,color:C.gold,marginBottom:8}}>{h}</div>
+      <div style={{fontSize:13,color:"rgba(255,255,255,.85)",lineHeight:1.9}}>{b.split("\n").map((l,j)=><p key={j} style={{marginBottom:6}}>{l}</p>)}</div>
+    </div>;
+  });
+  return(<div className="fade">
+    <div style={S.page}>
+      <div style={S.pgTitle}>AI <em style={{fontStyle:"italic",color:C.gold}}>Reflection</em></div>
+      <span style={S.pgSub}>Monthly soul analysis</span>
+      {months.length===0
+        ?<div style={{textAlign:"center",padding:"48px 24px",color:C.muted}}><div style={{fontSize:48,marginBottom:12}}>✨</div><p>No entries yet.<br/>Begin writing to unlock AI reflection.</p></div>
+        :<>
+          <div style={{display:"flex",gap:8,overflowX:"auto",marginBottom:20,scrollbarWidth:"none"}}>
+            {months.map(m=><button key={m} style={{padding:"7px 16px",borderRadius:100,fontSize:11,fontFamily:"'DM Mono',monospace",letterSpacing:1,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,border:sel===m?"none":"1px solid rgba(0,0,0,.08)",background:sel===m?C.ink:C.off,color:sel===m?C.white:C.muted}} onClick={()=>setSel(m)}>{mlbl(m)}</button>)}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
+            {[[me.length,"ENTRIES",C.gold],[me.filter(([,e])=>e.g1||e.g2||e.g3).length,"GRATITUDE",C.sage],[me.filter(([,e])=>e.mood==="😊"||e.mood==="🙂").length,"POSITIVE",C.blush]].map(([n,l,col])=>(
+              <div key={l} style={{background:C.off,borderRadius:14,padding:16,textAlign:"center",border:"1px solid rgba(0,0,0,.06)"}}>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,color:col,lineHeight:1}}>{n}</div>
+                <div style={{fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace",marginTop:4}}>{l}</div>
+              </div>
+            ))}
+          </div>
+          {!ex&&!busy&&<div style={{...S.card,textAlign:"center"}}>
+            <div style={{...S.tag,marginBottom:8}}>GENERATE AI REFLECTION</div>
+            <p style={{fontSize:13,color:C.muted,marginBottom:16}}>{me.length} entries for {mlbl(sel)}.</p>
+            <button style={S.btnDark} onClick={gen} disabled={!me.length}>Generate Reflection</button>
+            {err&&<p style={{fontSize:12,color:"#cc4444",marginTop:10}}>{err}</p>}
+          </div>}
+          {busy&&<div style={{background:C.ink,borderRadius:18,padding:24,marginBottom:14}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:3,color:C.gold,marginBottom:8}}>ANALYSING YOUR JOURNEY...</div>
+            <p style={{fontSize:13,color:"rgba(255,255,255,.6)"}}>Reading {me.length} entries...</p>
+          </div>}
+          {ex&&!busy&&<>
+            <div style={{background:C.ink,borderRadius:18,padding:24,marginBottom:14,position:"relative",overflow:"hidden"}}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:3,color:C.gold,marginBottom:8}}>REFLECTION FOR {mlbl(sel).toUpperCase()} - {ex.count} ENTRIES</div>
+              <div style={{fontSize:13,color:"rgba(255,255,255,.8)",lineHeight:1.9}}>{fmt(ex.text)}</div>
+            </div>
+            <div style={{textAlign:"center"}}>
+              <button style={{...S.btnOut,...S.btnSm}} onClick={()=>onSave(sel,null)}>Regenerate</button>
+              <div style={{fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace",marginTop:10}}>Generated: {new Date(ex.generated).toLocaleDateString("en-US")}</div>
+            </div>
+          </>}
+        </>}
+    </div>
+    {showPw&&<ChangePwModal buyer={buyer} onClose={()=>setShowPw(false)}/>}
+    <Footer onLogout={onLogout} onChangePw={()=>setShowPw(true)}/>
+  </div>);
+}
+
+/* SPLASH */
+function Splash({buyer,entries,onStart,onLogout}) {
+  return(
+    <div style={{minHeight:"100vh",background:C.ink,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,textAlign:"center",position:"relative",overflow:"hidden"}}>
+      <button style={{position:"absolute",top:24,right:24,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",borderRadius:100,padding:"7px 16px",fontSize:11,color:"rgba(255,255,255,.4)",cursor:"pointer",fontFamily:"'DM Mono',monospace"}} onClick={onLogout}>Sign Out</button>
+      <div style={{position:"relative",zIndex:1}}>
+        <p style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:4,color:C.gold,marginBottom:20}}>DAILY REFLECTION - MUHASABAH</p>
+        <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(52px,12vw,76px)",fontWeight:300,color:C.white,lineHeight:1.05,marginBottom:8}}>Soul <em style={{fontStyle:"italic",color:C.goldL}}>Journal</em></h1>
+        <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontStyle:"italic",color:"rgba(255,255,255,.4)",marginBottom:8}}>by Hati Sedar</p>
+        <div style={{width:40,height:1,background:C.gold,margin:"24px auto"}}/>
+        <p style={{fontSize:14,color:"rgba(255,255,255,.5)",maxWidth:280,lineHeight:1.8,margin:"0 auto 36px"}}>A sacred space for daily reflection, gratitude, and drawing closer to Allah.</p>
+        <button style={{...S.btnGold,fontSize:15,padding:"15px 48px"}} onClick={onStart}>{Object.keys(entries).length>0?"Continue Reflecting":"Begin Your Journey"}</button>
+        <p style={{fontSize:13,color:"rgba(255,255,255,.3)",marginTop:16,fontFamily:"'DM Mono',monospace"}}>Welcome, {buyer ? buyer.name : ""}</p>
+      </div>
+    </div>
+  );
+}
+
+/* NAV */
+function Nav({page,setPage,saveSt,onLogout}) {
+  const TABS=[{id:"home",l:"Home",e:"🏠"},{id:"daily",l:"Daily",e:"☀️"},{id:"history",l:"History",e:"📖"},{id:"reflection",l:"AI",e:"✨"}];
+  return(
+    <div style={{background:C.white,borderBottom:"1px solid rgba(0,0,0,.06)",display:"flex",alignItems:"center",overflowX:"auto",scrollbarWidth:"none",position:"sticky",top:0,zIndex:100}}>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontStyle:"italic",color:C.ink,padding:"0 18px 0 20px",borderRight:"1px solid rgba(0,0,0,.06)",flexShrink:0}}>
+        Soul <span style={{color:C.gold}}>Journal</span>
+      </div>
+      {TABS.map(t=>(
+        <button key={t.id} style={{padding:"15px 14px",fontSize:10,color:page===t.id?C.ink:C.muted,cursor:"pointer",whiteSpace:"nowrap",border:"none",borderBottom:page===t.id?"2px solid "+C.gold:"2px solid transparent",background:"none",fontFamily:"'DM Mono',monospace",letterSpacing:"1.5px",textTransform:"uppercase",flexShrink:0}} onClick={()=>setPage(t.id)}>
+          {t.e} {t.l}
+        </button>
+      ))}
+      <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8,paddingRight:14,flexShrink:0}}>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,letterSpacing:1,color:saveSt==="saved"?C.sage:C.gold}}>{saveSt==="saving"?"saving...":"saved"}</div>
+        <button style={{background:"none",border:"1px solid rgba(0,0,0,.1)",borderRadius:100,padding:"5px 12px",fontSize:9,color:C.muted,cursor:"pointer",fontFamily:"'DM Mono',monospace"}} onClick={onLogout}>Sign Out</button>
+      </div>
+    </div>
+  );
+}
+
+/* APP */
+function App() {
+  const [view,setView]   = useState("gate");
+  const [buyer,setBuyer] = useState(null);
+  const [page,setPage]   = useState("home");
+  const [entries,setE]   = useState({});
+  const [summs,setSumms] = useState({});
+  const [saveSt,setSaveSt] = useState("saved");
+  const timer = useRef(null);
+
+  useEffect(()=>{
+    const s=JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null");
+    if(s && s.buyerId){
+      const buyers=sgetBuyers();
+      const b=buyers.find(x=>x.id===s.buyerId&&x.active);
+      if(b){setBuyer(b);loadJ(b.id);setView("splash");}
+    }
+  },[]);
+
+  const loadJ=id=>{
+    setE(sget(JOURNAL_PRE+"e_"+id)||{});
+    setSumms(sget(JOURNAL_PRE+"s_"+id)||{});
+  };
+  const handleBuyer=b=>{
+    setBuyer(b);
+    sessionStorage.setItem(SESSION_KEY,JSON.stringify({buyerId:b.id}));
+    loadJ(b.id); setView("splash");
+  };
+  const logout=()=>{
+    sessionStorage.removeItem(SESSION_KEY);
+    setBuyer(null); setE({}); setSumms({});
+    setView("gate"); setPage("home");
+  };
+  const saveEntry=useCallback((date,data)=>{
+    if(!buyer) return;
+    setE(prev=>{
+      const next={...prev,[date]:data};
+      setSaveSt("saving");
+      if(timer.current) clearTimeout(timer.current);
+      timer.current=setTimeout(()=>{sset(JOURNAL_PRE+"e_"+buyer.id,next);setSaveSt("saved");},700);
+      return next;
+    });
+  },[buyer]);
+  const saveSumm=useCallback((month,data)=>{
+    if(!buyer) return;
+    setSumms(prev=>{
+      const next=data?{...prev,[month]:data}:Object.fromEntries(Object.entries(prev).filter(([k])=>k!==month));
+      sset(JOURNAL_PRE+"s_"+buyer.id,next);
+      return next;
+    });
+  },[buyer]);
+
+  if(view==="admin") return <Admin onLogout={()=>setView("gate")}/>;
+  if(view==="gate")  return <Gate onBuyer={handleBuyer} onAdmin={()=>setView("admin")}/>;
+  if(view==="splash") return <Splash buyer={buyer} entries={entries} onStart={()=>setView("journal")} onLogout={logout}/>;
+
+  return(
+    <>
+      <Nav page={page} setPage={setPage} saveSt={saveSt} onLogout={logout}/>
+      {page==="home"       && <Home       entries={entries} nav={setPage} name={buyer?buyer.name:""} buyer={buyer} onChangePw={()=>{}} onLogout={logout}/>}
+      {page==="daily"      && <Daily      entries={entries} onSave={saveEntry} buyer={buyer} onLogout={logout}/>}
+      {page==="history"    && <History    entries={entries} buyer={buyer} onLogout={logout}/>}
+      {page==="reflection" && <Reflection entries={entries} summaries={summs} onSave={saveSumm} buyer={buyer} onLogout={logout}/>}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
