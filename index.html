@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soul Journal — by Hati Sedar</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --white:#FFFFFF; --off:#FAFAF8; --warm:#F7F4EF;
+  --gold:#C4975A; --gold-l:#E8C98A; --gold-d:#9A7040;
+  --sage:#7A8C6E; --sage-l:#B8C4AD;
+  --ink:#1A1A1A; --mid:#4A4A4A; --muted:#9A9A9A;
+  --border:rgba(0,0,0,0.08);
+}
+html{scroll-behavior:smooth;}
+body{background:#fff;color:var(--ink);font-family:'Inter',sans-serif;font-size:15px;line-height:1.7;overflow-x:hidden;}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 5vw;display:flex;align-items:center;height:66px;transition:all .3s;}
+nav.scrolled{background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);box-shadow:0 2px 20px rgba(0,0,0,.04);}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-logo-text{font-family:'Cormorant Garamond',serif;font-size:20px;font-style:italic;color:var(--ink);}
+.nav-logo-text span{color:var(--gold);}
+.nav-links{display:flex;align-items:center;gap:28px;margin-left:auto;}
+.nav-links a{text-decoration:none;font-size:12px;color:var(--muted);transition:color .2s;font-family:'DM Mono',monospace;letter-spacing:1px;}
+.nav-links a:hover{color:var(--ink);}
+.nav-cta{padding:9px 22px;background:var(--ink);color:#fff!important;border-radius:8px;font-weight:500!important;font-family:'Inter',sans-serif!important;letter-spacing:0!important;font-size:13px!important;transition:all .2s!important;}
+.nav-cta:hover{background:#333!important;}
+.nav-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;margin-left:auto;}
+.nav-hamburger span{width:22px;height:1.5px;background:var(--ink);border-radius:2px;transition:all .3s;}
+.mobile-menu{display:none;position:fixed;inset:0;background:#fff;z-index:99;flex-direction:column;align-items:center;justify-content:center;gap:32px;}
+.mobile-menu.open{display:flex;}
+.mobile-menu a{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--ink);text-decoration:none;}
+.mobile-menu .m-cta{padding:14px 40px;background:var(--ink);color:#fff;border-radius:8px;font-size:15px;font-weight:500;}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;align-items:center;padding:100px 5vw 60px;position:relative;overflow:hidden;background:#fff;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 50%,rgba(196,151,90,.06) 0%,transparent 60%);}
+.hero-inner{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;max-width:1100px;margin:0 auto;width:100%;}
+.hero-left{position:relative;z-index:1;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;background:rgba(196,151,90,.08);border:1px solid rgba(196,151,90,.2);border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--gold-d);margin-bottom:24px;animation:up .6s .1s both;}
+.hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(44px,5.5vw,72px);font-weight:300;line-height:1.05;margin-bottom:18px;animation:up .6s .2s both;}
+.hero-title em{font-style:italic;color:var(--gold);}
+.hero-sub{font-size:17px;color:var(--mid);line-height:1.8;max-width:420px;margin-bottom:36px;animation:up .6s .3s both;}
+.hero-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;animation:up .6s .4s both;}
+.btn-primary{padding:14px 36px;background:var(--ink);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .25s;text-decoration:none;display:inline-block;}
+.btn-primary:hover{background:#333;transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.15);}
+.btn-secondary{padding:14px 28px;background:transparent;color:var(--mid);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;transition:all .2s;text-decoration:none;display:inline-block;}
+.btn-secondary:hover{border-color:var(--ink);color:var(--ink);}
+.hero-note{font-size:12px;color:var(--muted);margin-top:14px;font-family:'DM Mono',monospace;letter-spacing:.5px;animation:up .6s .5s both;}
+
+/* HERO VISUAL */
+.hero-right{position:relative;z-index:1;animation:up .6s .3s both;}
+.phone-mockup{width:260px;margin:0 auto;position:relative;}
+.phone-frame{background:var(--ink);border-radius:32px;padding:3px;box-shadow:0 30px 80px rgba(0,0,0,.15),0 0 0 1px rgba(196,151,90,.15);}
+.phone-screen{background:var(--ink);border-radius:30px;overflow:hidden;aspect-ratio:9/19;}
+.phone-screen-inner{height:100%;display:flex;flex-direction:column;}
+.ps-nav{background:#111;padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06);}
+.ps-brand{font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--gold);font-style:italic;}
+.ps-body{flex:1;padding:14px 12px;overflow:hidden;}
+.ps-hero{background:#111;border-radius:12px;padding:14px;margin-bottom:8px;}
+.ps-greeting{font-family:'Cormorant Garamond',serif;font-size:15px;color:#fff;font-weight:300;margin-bottom:2px;}
+.ps-greeting em{font-style:italic;color:var(--gold-l);}
+.ps-sub{font-size:9px;color:rgba(255,255,255,.35);margin-bottom:10px;}
+.ps-streak{display:flex;gap:4px;margin-bottom:10px;}
+.ps-day{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:600;}
+.ps-day.done{background:var(--gold);color:var(--ink);}
+.ps-day.miss{background:rgba(255,255,255,.07);color:rgba(255,255,255,.2);}
+.ps-btn{background:var(--gold);border:none;border-radius:100px;padding:6px 12px;font-size:9px;font-weight:600;color:var(--ink);cursor:default;font-family:inherit;}
+.ps-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px;}
+.ps-stat{background:rgba(255,255,255,.04);border-radius:8px;padding:6px;text-align:center;}
+.ps-stat-n{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold);line-height:1;}
+.ps-stat-l{font-size:6px;color:rgba(255,255,255,.3);margin-top:2px;font-family:'DM Mono',monospace;}
+.ps-card{background:rgba(255,255,255,.04);border-radius:8px;padding:8px;border-left:2px solid var(--gold);}
+.ps-card-tag{font-family:'DM Mono',monospace;font-size:6px;letter-spacing:2px;color:var(--gold);margin-bottom:3px;}
+.ps-card-text{font-size:8px;color:rgba(255,255,255,.6);line-height:1.4;}
+.float-1{position:absolute;top:-18px;right:-28px;background:#fff;border-radius:12px;padding:9px 13px;box-shadow:0 6px 20px rgba(0,0,0,.1);font-size:11px;color:var(--mid);white-space:nowrap;animation:float 3s ease-in-out infinite;border:1px solid var(--border);}
+.float-1 strong{color:var(--sage);display:block;font-size:12px;}
+.float-2{position:absolute;bottom:-8px;left:-36px;background:var(--ink);border-radius:12px;padding:9px 13px;box-shadow:0 6px 20px rgba(0,0,0,.2);font-size:11px;color:rgba(255,255,255,.6);white-space:nowrap;animation:float 3s ease-in-out .8s infinite;}
+.float-2 strong{color:var(--gold-l);display:block;font-size:11px;}
+
+/* ── SECTIONS ── */
+section{padding:96px 5vw;}
+.section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--gold-d);text-transform:uppercase;margin-bottom:10px;display:block;}
+.section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,4vw,48px);font-weight:300;line-height:1.2;margin-bottom:14px;}
+.section-title em{font-style:italic;color:var(--gold);}
+.section-sub{font-size:15px;color:var(--muted);max-width:520px;line-height:1.8;}
+.section-header{text-align:center;margin-bottom:60px;}
+.section-header .section-sub{margin:0 auto;}
+
+/* ── FEATURES ── */
+.features{background:var(--off);}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1100px;margin:0 auto;}
+.feat{background:#fff;border-radius:20px;padding:28px 24px;border:1px solid var(--border);transition:all .3s;position:relative;overflow:hidden;}
+.feat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--sage));opacity:0;transition:opacity .3s;}
+.feat:hover{transform:translateY(-3px);box-shadow:0 12px 36px rgba(0,0,0,.06);border-color:rgba(196,151,90,.2);}
+.feat:hover::after{opacity:1;}
+.feat-icon{width:44px;height:44px;border-radius:12px;background:var(--warm);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:18px;}
+.feat-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;margin-bottom:8px;}
+.feat-desc{font-size:13px;color:var(--muted);line-height:1.7;}
+.feat-tag{display:inline-block;margin-top:14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--sage);background:rgba(122,140,110,.08);padding:3px 10px;border-radius:100px;}
+.feat.featured{background:var(--ink);}
+.feat.featured .feat-title{color:#fff;}
+.feat.featured .feat-desc{color:rgba(255,255,255,.5);}
+.feat.featured .feat-tag{color:var(--gold-l);background:rgba(196,151,90,.15);}
+.feat.featured .feat-icon{background:rgba(196,151,90,.15);}
+
+/* ── PRICING ── */
+.pricing{background:#fff;}
+.pricing-inner{max-width:860px;margin:0 auto;}
+.price-card{background:var(--ink);border-radius:24px;padding:52px 48px;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;position:relative;overflow:hidden;}
+.price-card::after{content:'✦';position:absolute;font-size:280px;color:var(--gold);opacity:.03;right:-50px;bottom:-60px;line-height:1;pointer-events:none;}
+.price-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--gold);margin-bottom:16px;}
+.price-amount{font-family:'Cormorant Garamond',serif;font-size:80px;color:#fff;line-height:1;margin-bottom:6px;}
+.price-amount span{font-size:32px;vertical-align:super;color:rgba(255,255,255,.6);}
+.price-note{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px;font-family:'DM Mono',monospace;letter-spacing:.5px;}
+.price-btn{padding:15px 44px;background:var(--gold);color:var(--ink);border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .25s;text-decoration:none;display:inline-block;}
+.price-btn:hover{background:var(--gold-l);transform:translateY(-2px);}
+.price-sub{font-size:11px;color:rgba(255,255,255,.3);margin-top:12px;font-family:'DM Mono',monospace;}
+.includes-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.3);margin-bottom:20px;}
+.include-item{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;}
+.include-check{width:18px;height:18px;border-radius:50%;background:rgba(196,151,90,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.include-check svg{width:9px;height:9px;}
+.include-text{font-size:14px;color:rgba(255,255,255,.7);line-height:1.5;}
+.include-text strong{color:#fff;display:block;font-size:14px;}
+
+/* ── HOW IT WORKS ── */
+.how{background:var(--off);}
+.steps{display:flex;gap:0;max-width:760px;margin:40px auto 0;position:relative;}
+.steps::before{content:'';position:absolute;top:22px;left:60px;right:60px;height:1px;background:linear-gradient(90deg,transparent,rgba(196,151,90,.2),transparent);}
+.step{flex:1;text-align:center;padding:0 12px;}
+.step-num{width:44px;height:44px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold);position:relative;z-index:1;border:1px solid rgba(196,151,90,.2);}
+.step-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px;}
+.step-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+
+/* ── TESTIMONIAL ── */
+.testimonial{background:#fff;}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1000px;margin:0 auto;}
+.testi{background:var(--off);border-radius:18px;padding:28px 24px;border:1px solid var(--border);}
+.testi-stars{color:var(--gold);font-size:14px;margin-bottom:12px;letter-spacing:2px;}
+.testi-text{font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;color:var(--mid);line-height:1.6;margin-bottom:16px;}
+.testi-author{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted);}
+
+/* ── FAQ ── */
+.faq{background:var(--off);}
+.faq-inner{max-width:680px;margin:0 auto;}
+.faq-item{border-bottom:1px solid var(--border);overflow:hidden;}
+.faq-q{padding:20px 0;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:20px;}
+.faq-q-text{font-size:15px;font-weight:500;color:var(--ink);}
+.faq-icon{width:26px;height:26px;border-radius:50%;background:var(--warm);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s;font-size:16px;color:var(--ink);}
+.faq-item.open .faq-icon{background:var(--ink);color:#fff;transform:rotate(45deg);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease;}
+.faq-item.open .faq-a{max-height:200px;}
+.faq-a-inner{padding:0 0 18px;font-size:14px;color:var(--muted);line-height:1.8;}
+
+/* ── CTA BOTTOM ── */
+.cta-bottom{background:var(--ink);text-align:center;position:relative;overflow:hidden;}
+.cta-bottom::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(196,151,90,.08) 0%,transparent 60%);}
+.cta-inner{position:relative;z-index:1;max-width:600px;margin:0 auto;}
+.cta-bottom .section-title{color:#fff;}
+.cta-bottom .section-sub{color:rgba(255,255,255,.4);margin:0 auto 36px;}
+.cta-quote{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:rgba(255,255,255,.25);margin-top:40px;line-height:1.6;}
+.cta-quote cite{display:block;font-style:normal;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.15);margin-top:8px;}
+
+/* ── FOOTER ── */
+footer{background:#111;padding:36px 5vw;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-brand{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:var(--gold);}
+.footer-links{display:flex;gap:20px;}
+.footer-links a{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;color:rgba(255,255,255,.3);text-decoration:none;transition:color .2s;}
+.footer-links a:hover{color:var(--gold);}
+.footer-copy{font-size:11px;color:rgba(255,255,255,.15);font-family:'DM Mono',monospace;}
+
+/* ── ANIMATIONS ── */
+@keyframes up{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .65s ease,transform .65s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .hero-inner{grid-template-columns:1fr;gap:48px;text-align:center;}
+  .hero-sub{margin:0 auto 36px;}
+  .hero-actions{justify-content:center;}
+  .hero-note{text-align:center;}
+  .hero-right{order:-1;}
+  .phone-mockup{width:200px;}
+  .float-1,.float-2{display:none;}
+  .feat-grid{grid-template-columns:1fr;}
+  .price-card{grid-template-columns:1fr;gap:32px;padding:36px 24px;}
+  .steps{flex-direction:column;gap:20px;}.steps::before{display:none;}
+  .testi-grid{grid-template-columns:1fr;}
+  .nav-links{display:none;}
+  .nav-hamburger{display:flex;}
+}
+@media(max-width:480px){
+  section{padding:64px 5vw;}
+  .hero{padding:80px 5vw 48px;}
+  .price-amount{font-size:60px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a href="#" class="nav-logo">
+    <svg width="28" height="28" viewBox="0 0 90 90" fill="none">
+      <circle cx="45" cy="45" r="42" fill="#1A1A1A" stroke="#C4975A" stroke-width="0.8" opacity="0.6"/>
+      <path d="M 26 72 L 26 46 Q 26 24, 45 24 Q 64 24, 64 46 L 64 72 Z" fill="none" stroke="#C4975A" stroke-width="1.3"/>
+      <line x1="45" y1="65" y2="40" x2="45" stroke="#7A8C6E" stroke-width="1.1"/>
+      <path d="M 45 53 C 39 47, 35 40, 40 35 C 42 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.85"/>
+      <path d="M 45 53 C 51 47, 55 40, 50 35 C 48 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.65"/>
+      <ellipse cx="45" cy="34" rx="2" ry="3" fill="#B8C4AD" opacity="0.9"/>
+      <line x1="22" y1="72" x2="68" y2="72" stroke="#C4975A" stroke-width="1"/>
+    </svg>
+    <span class="nav-logo-text">Soul <span>Journal</span></span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How It Works</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://halida5.gumroad.com/l/uaxoa?_gl=1*j9okq6*_ga*MjE0MDU1NTA1Ny4xNzczNjM2Mzkx*_ga_6LJN6D94N6*czE3NzM2NDIyNjgkbzIkZzEkdDE3NzM2NDIzMDEkajI3JGwwJGgw" class="nav-cta">Get Access — $10 →</a>
+  </div>
+  <div class="nav-hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#features" onclick="toggleMenu()">Features</a>
+  <a href="#how" onclick="toggleMenu()">How It Works</a>
+  <a href="#pricing" onclick="toggleMenu()">Pricing</a>
+  <a href="#faq" onclick="toggleMenu()">FAQ</a>
+  <a href="https://halida5.gumroad.com/l/uaxoa?_gl=1*1vcj1tn*_ga*MjE0MDU1NTA1Ny4xNzczNjM2Mzkx*_ga_6LJN6D94N6*czE3NzM2NDIyNjgkbzIkZzEkdDE3N" class="m-cta" onclick="toggleMenu()">Buy on Gumroad — $10 →</a>
+</div>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-badge">🌿 Islamic Daily Reflection Journal</div>
+      <h1 class="hero-title">
+        A sacred space<br>for your <em>soul</em><br>to breathe.
+      </h1>
+      <p class="hero-sub">Soul Journal is a daily digital journal rooted in Islamic tradition — helping you practice muhasabah, cultivate gratitude, and draw closer to Allah, one reflection at a time.</p>
+      <div class="hero-actions">
+        <a href="https://halida5.gumroad.com/l/uaxoa?_gl=1*1vcj1tn*_ga*MjE0MDU1NTA1Ny4xNzczNjM2Mzkx*_ga_6LJN6D94N6*czE3NzM2NDIyNjgkbzIkZzEkdDE3N" class="btn-primary">Buy on Gumroad — $10 →</a>
+        <a href="https://www.ebay.com/itm/397720044665" class="btn-secondary" style="display:inline-flex;align-items:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 7C3 5.9 3.9 5 5 5h3l2 4H3V7z" fill="#E53238"/><path d="M8 5h5c1.1 0 2 .9 2 2v2H8V5z" fill="#0064D2"/><path d="M15 5h1c1.1 0 2 .9 2 2v2h-3V5z" fill="#F5AF02"/><path d="M3 11h15v2c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-2z" fill="#86B817"/></svg>
+          Buy on eBay
+        </a>
+      </div>
+      <p class="hero-note">One-time payment · No subscription · Works on all devices</p>
+    </div>
+    <div class="hero-right">
+      <div class="phone-mockup">
+        <div class="float-1"><strong>✓ Saved</strong>Today's entry</div>
+        <div class="float-2"><strong>✨ AI Reflection</strong>End of month</div>
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="phone-screen-inner">
+              <div class="ps-nav">
+                <svg width="14" height="14" viewBox="0 0 90 90" fill="none">
+                  <path d="M 26 72 L 26 46 Q 26 24, 45 24 Q 64 24, 64 46 L 64 72 Z" fill="none" stroke="#C4975A" stroke-width="2"/>
+                  <line x1="45" y1="65" y2="40" x2="45" stroke="#7A8C6E" stroke-width="2"/>
+                  <path d="M 45 53 C 39 47, 35 40, 40 35 C 42 33, 45 37, 45 43 Z" fill="#7A8C6E" opacity="0.9"/>
+                  <line x1="22" y1="72" x2="68" y2="72" stroke="#C4975A" stroke-width="1.5"/>
+                </svg>
+                <span class="ps-brand">Soul Journal</span>
+              </div>
+              <div class="ps-body">
+                <div class="ps-hero">
+                  <div class="ps-greeting">Good <em>Morning</em>, Sarah</div>
+                  <div class="ps-sub">Make today meaningful</div>
+                  <div class="ps-streak">
+                    <div class="ps-day done">M</div><div class="ps-day done">T</div>
+                    <div class="ps-day done">W</div><div class="ps-day done">T</div>
+                    <div class="ps-day done">F</div><div class="ps-day miss">S</div>
+                    <div class="ps-day miss">S</div>
+                  </div>
+                  <button class="ps-btn">☀️ Begin Reflection</button>
+                </div>
+                <div class="ps-stats">
+                  <div class="ps-stat"><div class="ps-stat-n">5</div><div class="ps-stat-l">STREAK</div></div>
+                  <div class="ps-stat"><div class="ps-stat-n">18</div><div class="ps-stat-l">ENTRIES</div></div>
+                  <div class="ps-stat"><div class="ps-stat-n">😊</div><div class="ps-stat-l">MOOD</div></div>
+                </div>
+                <div class="ps-card">
+                  <div class="ps-card-tag">AI REFLECTION</div>
+                  <div class="ps-card-text">This month shows a beautiful journey of consistent growth...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="section-header reveal">
+      <span class="section-label">What You Get</span>
+      <h2 class="section-title">More than a journal.<br>A <em>daily practice</em> for your soul.</h2>
+      <p class="section-sub">Every feature is designed to help you build a meaningful muhasabah habit — grounded in Islamic wisdom, beautifully simple.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat reveal">
+        <div class="feat-icon">☀️</div>
+        <div class="feat-title">Daily Reflection</div>
+        <p class="feat-desc">Set your morning intention, track your mood, record three gratitudes, and close with an evening muhasabah — all in one beautiful page.</p>
+        <span class="feat-tag">MORNING & EVENING</span>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-icon">💛</div>
+        <div class="feat-title">Emotion Tracker</div>
+        <p class="feat-desc">Identify the root cause of your emotions, measure their intensity, and receive a relevant dua based on how you feel today.</p>
+        <span class="feat-tag">ISLAMIC PSYCHOLOGY</span>
+      </div>
+      <div class="feat featured reveal">
+        <div class="feat-icon" style="background:rgba(196,151,90,.15)">✨</div>
+        <div class="feat-title">Monthly AI Reflection</div>
+        <p class="feat-desc">At the end of every month, AI reads all your entries and generates a personalised reflection: your emotional patterns, strengths, and Islamic guidance for the month ahead.</p>
+        <span class="feat-tag">POWERED BY AI</span>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-icon">📖</div>
+        <div class="feat-title">Entry History</div>
+        <p class="feat-desc">All entries saved and organised by month. Look back on your journey and witness how far you've come.</p>
+        <span class="feat-tag">AUTO-SAVED</span>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-icon">📱</div>
+        <div class="feat-title">Works on Any Device</div>
+        <p class="feat-desc">No app to download. Open the link in Chrome or Safari — works on iPhone, Android, and desktop instantly.</p>
+        <span class="feat-tag">NO DOWNLOAD NEEDED</span>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-icon">🔐</div>
+        <div class="feat-title">Private & Secure</div>
+        <p class="feat-desc">Each buyer gets a unique access password. Your journal data stays on your device — completely private.</p>
+        <span class="feat-tag">YOUR DATA, YOUR DEVICE</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div style="max-width:1000px;margin:0 auto;text-align:center;">
+    <div class="reveal">
+      <span class="section-label">Simple Process</span>
+      <h2 class="section-title">Up and running<br>in <em>60 seconds.</em></h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">1</div>
+        <div class="step-title">Purchase</div>
+        <p class="step-desc">Complete your one-time payment of $10</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">2</div>
+        <div class="step-title">Get Password</div>
+        <p class="step-desc">Your unique access password is sent instantly</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">3</div>
+        <div class="step-title">Open & Reflect</div>
+        <p class="step-desc">Open the link, enter password — begin your journey</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonial" id="testimonial">
+  <div style="max-width:1000px;margin:0 auto;">
+    <div class="section-header reveal">
+      <span class="section-label">From Our Community</span>
+      <h2 class="section-title">Souls who found their <em>stillness.</em></h2>
+    </div>
+    <div class="testi-grid">
+      <div class="testi reveal">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"I've tried so many journaling apps but none felt right. Soul Journal understands the Islamic way of self-reflection."</p>
+        <div class="testi-author">AISHA K. · LONDON, UK</div>
+      </div>
+      <div class="testi reveal">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"The AI monthly reflection made me cry. It truly understood my journey and gave me the guidance I needed."</p>
+        <div class="testi-author">FATIMAH R. · TORONTO, CA</div>
+      </div>
+      <div class="testi reveal">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"5 minutes every morning with Soul Journal has transformed my relationship with Allah. Truly worth every penny."</p>
+        <div class="testi-author">ZAHRA M. · DUBAI, UAE</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="pricing-inner">
+    <div class="section-header reveal">
+      <span class="section-label">Simple Pricing</span>
+      <h2 class="section-title">One price.<br><em>Lifetime</em> access.</h2>
+    </div>
+    <div class="price-card reveal">
+      <div>
+        <div class="price-label">LIFETIME ACCESS · ONE-TIME PAYMENT</div>
+        <div class="price-amount"><span>$</span>10</div>
+        <p class="price-note">Pay once. Journal forever. No subscriptions.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+        <a href="https://halida5.gumroad.com/l/uaxoa?_gl=1*1vcj1tn*_ga*MjE0MDU1NTA1Ny4xNzczNjM2Mzkx*_ga_6LJN6D94N6*czE3NzM2NDIyNjgkbzIkZzEkdDE3N" class="price-btn" style="text-align:center;display:block;">Buy on Gumroad — $10 →</a>
+        <a href="https://www.ebay.com/itm/397720044665" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 44px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;transition:all .25s;font-family:inherit;">
+          <svg width="18" height="18" viewBox="0 0 30 30" fill="none"><rect x="2" y="8" width="6" height="14" rx="1" fill="#E53238"/><rect x="10" y="5" width="6" height="17" rx="1" fill="#0064D2"/><rect x="18" y="8" width="6" height="14" rx="1" fill="#F5AF02"/><rect x="2" y="20" width="22" height="3" rx="1" fill="#86B817"/></svg>
+          Also available on eBay
+        </a>
+      </div>
+        <p class="price-sub">✓ Instant access · ✓ All features · ✓ No hidden fees</p>
+      </div>
+      <div>
+        <div class="includes-title">EVERYTHING INCLUDED:</div>
+        <div class="include-item">
+          <div class="include-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#7A8C6E" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div class="include-text"><strong>Unlimited Daily Reflections</strong>Morning intention, mood, gratitude & evening muhasabah</div>
+        </div>
+        <div class="include-item">
+          <div class="include-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#7A8C6E" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div class="include-text"><strong>Islamic Emotion Tracker</strong>Root cause analysis + relevant duas for your mood</div>
+        </div>
+        <div class="include-item">
+          <div class="include-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#7A8C6E" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div class="include-text"><strong>Monthly AI Reflection</strong>Personalised spiritual guidance every month</div>
+        </div>
+        <div class="include-item">
+          <div class="include-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#7A8C6E" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div class="include-text"><strong>Full Entry History</strong>All reflections saved — no limits, no expiry</div>
+        </div>
+        <div class="include-item">
+          <div class="include-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#7A8C6E" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div class="include-text"><strong>Works on All Devices</strong>iPhone, Android, desktop — no app needed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq" id="faq">
+  <div class="faq-inner">
+    <div class="section-header reveal">
+      <span class="section-label">Questions</span>
+      <h2 class="section-title">Everything you<br>need to <em>know.</em></h2>
+    </div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">How do I access the journal after purchasing?</span><div class="faq-icon">+</div></div>
+      <div class="faq-a"><div class="faq-a-inner">After completing payment on Gumroad or eBay, you'll receive a unique access password in your delivery message. Simply open the Soul Journal link, enter your password, and you're in. No downloads required.</div></div>
+    </div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Do I need to download an app?</span><div class="faq-icon">+</div></div>
+      <div class="faq-a"><div class="faq-a-inner">No! Soul Journal works directly in your mobile browser — Chrome or Safari. You can also add it to your home screen for an app-like experience on iPhone and Android.</div></div>
+    </div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Is my journal data private?</span><div class="faq-icon">+</div></div>
+      <div class="faq-a"><div class="faq-a-inner">Yes, completely. Your journal entries are stored locally on your device. We never read, store, or access your personal reflections. Each buyer also has a unique password for extra security.</div></div>
+    </div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">How does the AI Reflection work?</span><div class="faq-icon">+</div></div>
+      <div class="faq-a"><div class="faq-a-inner">At the end of each month, click "Generate AI Reflection" and our AI will analyse all your entries for that month. It produces a personalised reflection: your emotional journey, strengths, patterns, and Islamic guidance for the next month.</div></div>
+    </div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Is this suitable for non-Muslims?</span><div class="faq-icon">+</div></div>
+      <div class="faq-a"><div class="faq-a-inner">Soul Journal is rooted in Islamic tradition but the practice of daily reflection, gratitude, and self-accountability is universal. Anyone seeking a mindful, spiritually grounded journaling experience will find value here.</div></div>
+    </div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Is this a subscription?</span><div class="faq-icon">+</div></div>
+      <div class="faq-a"><div class="faq-a-inner">No subscription, ever. Pay $10 once and have lifetime access. No monthly fees, no hidden charges.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BOTTOM -->
+<section class="cta-bottom">
+  <div class="cta-inner reveal">
+    <span class="section-label" style="color:var(--gold)">Begin Today</span>
+    <h2 class="section-title">Your soul deserves<br>a moment of <em>stillness.</em></h2>
+    <p class="section-sub">Every great journey begins with one step. Let today be the day you begin yours.</p>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <a href="https://halida5.gumroad.com/l/uaxoa?_gl=1*1vcj1tn*_ga*MjE0MDU1NTA1Ny4xNzczNjM2Mzkx*_ga_6LJN6D94N6*czE3NzM2NDIyNjgkbzIkZzEkdDE3N" class="btn-primary" style="font-size:16px;padding:16px 44px;background:var(--gold);color:var(--ink);">Buy on Gumroad — $10 →</a>
+      <a href="https://www.ebay.com/itm/397720044665" style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,.5);text-decoration:none;font-family:inherit;transition:color .2s;" onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
+        Also available on eBay →
+      </a>
+    </div>
+    <p class="cta-quote">
+      "Take account of yourselves before you are taken to account."
+      <cite>— Umar ibn Al-Khattab r.a.</cite>
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">Soul Journal</div>
+  <div class="footer-links">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://halida5.gumroad.com/l/uaxoa?_gl=1*1vcj1tn*_ga*MjE0MDU1NTA1Ny4xNzczNjM2Mzkx*_ga_6LJN6D94N6*czE3NzM2NDIyNjgkbzIkZzEkdDE3N">Gumroad</a>
+    <a href="https://www.ebay.com/itm/397720044665">eBay</a>
+  </div>
+  <div class="footer-copy">© 2026 Soul Journal · by Hati Sedar</div>
+</footer>
+
+<script>
+window.addEventListener('scroll',()=>{
+  document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>40);
+});
+function toggleMenu(){
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+function toggleFaq(el){
+  const item=el.parentElement;
+  const isOpen=item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+  if(!isOpen) item.classList.add('open');
+}
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{if(e.isIntersecting) e.target.classList.add('visible');});
+},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+</script>
+</body>
+</html>
