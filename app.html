@@ -239,11 +239,40 @@ function Admin({onLogout}) {
   const [search,setSearch]=useState("");
   const [name,setName]=useState(""); const [email,setEmail]=useState(""); const [pw,setPw]=useState(genPW());
   const [toast,setToast]=useState(""); const [cfm,setCfm]=useState(null);
-  useEffect(()=>{sgetBuyers().then(list=>setBuyers(list.filter(b=>!b.id.startsWith('demo'))));},[]);
+  useEffect(()=>{
+    // Auto-migrate localStorage buyers to server on first load
+    const migrate = async() => {
+      try{
+        // Get buyers from server first
+        const r = await fetch("/.netlify/functions/get-buyers");
+        const data = await r.json();
+        const serverBuyers = data.buyers || [];
+        
+        // Get buyers from localStorage
+        const localBuyers = JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
+        
+        // If server is empty but localStorage has buyers, migrate them
+        if(serverBuyers.length === 0 && localBuyers.length > 0){
+          await fetch("/.netlify/functions/save-buyers",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({buyers:localBuyers})
+          });
+          setBuyers(localBuyers);
+        } else {
+          setBuyers(serverBuyers);
+        }
+      }catch(e){
+        const local = JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
+        setBuyers(local);
+      }
+    };
+    migrate();
+  },[]);
   const save=list=>{setBuyers(list);saveBuyers(list);};
   const showToast=msg=>{setToast(msg);setTimeout(()=>setToast(""),3000);};
   const addBuyer=()=>{
-    if(!name.trim()||!pw.trim()) return;
+    if(!name.trim()||!email.trim()||!pw.trim()){showToast("Name, email & password required!");return;}
     save([...buyers,{id:genId(),name:name.trim(),email:email.trim(),password:pw.trim(),createdAt:today(),active:true}]);
     setName(""); setEmail(""); setPw(genPW()); showToast("Buyer added!");
   };
@@ -322,21 +351,26 @@ function Admin({onLogout}) {
 
 /* GATE */
 function Gate({onBuyer,onAdmin}) {
-  const [pw,setPw]=useState(""); const [err,setErr]=useState(""); const [busy,setBusy]=useState(false);
+  const [email,setEmail]=useState(""); const [pw,setPw]=useState(""); 
+  const [err,setErr]=useState(""); const [busy,setBusy]=useState(false);
   const [adm,setAdm]=useState(false); const [apw,setApw]=useState("");
   const login=async()=>{
-    if(!pw.trim()){setErr("Please enter your access password.");return;}
+    if(!email.trim()){setErr("Please enter your email address.");return;}
+    if(!pw.trim()){setErr("Please enter your password.");return;}
     setBusy(true); setErr("");
     try{
       const buyers=await sgetBuyers();
-      const b=buyers.find(x=>x.active&&x.password.toLowerCase()===pw.trim().toLowerCase());
-      if(b){onBuyer(b);}else{setErr("Invalid or inactive password. Please check your purchase confirmation.");}
+      const b=buyers.find(x=>x.active&&
+        x.email.toLowerCase()===email.trim().toLowerCase()&&
+        x.password.toLowerCase()===pw.trim().toLowerCase()
+      );
+      if(b){onBuyer(b);}else{setErr("Invalid email or password. Please check your purchase confirmation.");}
     }catch(e){setErr("Connection error. Please try again.");}
     setBusy(false);
   };
   const adminLogin=()=>{if(apw===ADMIN_PW){onAdmin();}else{setErr("Incorrect admin password.");}};
   const gateStyle={minHeight:"100vh",background:C.white,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 24px",position:"relative"};
-  const inp2={width:"100%",padding:"14px 16px",background:C.off,border:"1px solid rgba(196,151,90,.3)",borderRadius:12,color:C.ink,fontSize:15,fontFamily:"inherit",outline:"none",textAlign:"center",letterSpacing:2,boxSizing:"border-box",marginBottom:14};
+  const inp2={width:"100%",padding:"14px 16px",background:C.off,border:"1px solid rgba(196,151,90,.3)",borderRadius:12,color:C.ink,fontSize:15,fontFamily:"inherit",outline:"none",boxSizing:"border-box",marginBottom:14};
   return(
     <div style={gateStyle}>
       <div style={{width:"100%",maxWidth:400,textAlign:"center",position:"relative",zIndex:1}}>
@@ -344,11 +378,14 @@ function Gate({onBuyer,onAdmin}) {
           <div style={{marginBottom:24}}><Logo size={60}/></div>
           <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontWeight:300,color:C.ink,marginBottom:4}}>Soul <em style={{fontStyle:"italic",color:C.gold}}>Journal</em></h1>
           <p style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:3,color:C.muted,marginBottom:28}}>BY HATI SEDAR</p>
-          <p style={{fontSize:13,color:C.muted,marginBottom:28,lineHeight:1.7}}>Enter your access password.<br/>Sent with your purchase confirmation.</p>
-          <label style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.muted,textAlign:"left",marginBottom:8,display:"block"}}>ACCESS PASSWORD</label>
+          <p style={{fontSize:13,color:C.muted,marginBottom:28,lineHeight:1.7}}>Sign in with the email and password<br/>from your purchase confirmation.</p>
+          <label style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.muted,textAlign:"left",marginBottom:8,display:"block"}}>EMAIL ADDRESS</label>
+          <input style={inp2} type="email" placeholder="your@email.com" value={email}
+            onChange={e=>{setEmail(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&login()}/>
+          <label style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:2,color:C.muted,textAlign:"left",marginBottom:8,display:"block"}}>PASSWORD</label>
           <input style={inp2} type="password" placeholder="Enter your password..." value={pw}
             onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&login()}/>
-          <button style={{...S.btnDark,width:"100%",justifyContent:"center",marginTop:4}} onClick={login} disabled={busy}>{busy?"Checking...":"Access Journal"}</button>
+          <button style={{...S.btnDark,width:"100%",justifyContent:"center",marginTop:4}} onClick={login} disabled={busy}>{busy?"Checking...":"Sign In to Journal"}</button>
           {err&&<div style={{marginTop:10,padding:"10px 14px",background:"#FFF0F0",border:"1px solid #FFCCCC",borderRadius:8,fontSize:12,color:"#CC4444",textAlign:"center"}}>{err}</div>}
           <p style={{fontSize:12,color:C.muted,marginTop:20,lineHeight:1.7}}>Don not have access? Purchase Soul Journal to get started.</p>
           <div style={{marginTop:20,fontSize:10,color:"rgba(0,0,0,.08)",cursor:"pointer",fontFamily:"'DM Mono',monospace"}} onClick={()=>{setAdm(true);setErr("");}}>. . .</div>
