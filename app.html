@@ -49,17 +49,7 @@ const { useState, useEffect, useCallback, useRef } = React;
 /* CONFIG */
 const ADMIN_PW      = "admin@souljournal2026";
 /* Config */
-const _sk=(()=>{
-  const _d=[79,119,112,90,67,68,48,82,83,81,65,67,87,119,65,66,71,120,85,107,65,105,89,86,70,82,103,75,87,70,49,119,69,84,89,97,67,49,69,83,86,121,74,110,82,70,70,68,83,67,100,78,74,121,120,70,66,70,111,78,80,122,108,90,81,49,111,67,80,86,89,118,65,119,81,73,87,72,74,111,71,106,81,75,79,82,82,88,85,121,107,79,65,82,65,98,67,65,89,118,69,103,73,98,98,88,103,70,82,86,65,70,82,122,69,74,81,82,69,115,76,82,53,119,68,106,69,111,74,70,73,49,84,69,74,82,65,110,70,66,89,65,119,61];
-  const _xk="HatiSedar2026!Muraqabah";
-  try{
-    const _b64=_d.map(x=>String.fromCharCode(x)).join("");
-    const _raw=atob(_b64);
-    return [..._raw].map((c,i)=>String.fromCharCode(c.charCodeAt(0)^_xk.charCodeAt(i%_xk.length))).join("");
-  }catch(e){return "";}
-})();
-const ANTHROPIC_KEY= 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
-
+const ANTHROPIC_KEY=""; // Handled by Netlify Function // Handled by Netlify Function
 const BUYERS_KEY    = "sj_buyers";
 const SESSION_KEY   = "sj_session";
 const JOURNAL_PRE   = "sj_j_";
@@ -560,7 +550,7 @@ function Reflection({entries,summaries,onSave,buyer,onLogout}) {
   const ex=summaries[sel];
   const gen=async()=>{
     if(!me.length) return;
-    if(!ANTHROPIC_KEY||ANTHROPIC_KEY.length<20){setErr("API key not configured. Please contact support.");return;}
+    // API key handled server-side via Netlify Function
     setBusy(true); setErr("");
     const lines=me.map(([d,e])=>{const p=[];
       if(e.mood)p.push("Mood: "+e.mood+" "+(MOODS.find(m=>m.e===e.mood)||{l:""}).l);
@@ -571,16 +561,15 @@ function Reflection({entries,summaries,onSave,buyer,onLogout}) {
       return fmtDate(d)+": "+p.join(" | ");
     }).join("\n\n");
     try{
-      const r=await fetch("https://api.anthropic.com/v1/messages",{
+      const prompt="You are a compassionate Islamic spiritual mentor. Analyse these journal entries from "+mlbl(sel)+" and provide a meaningful reflection in English.\n\nJOURNAL ENTRIES:\n"+lines+"\n\nRespond in this format (no markdown):\n\nTHIS MONTHS REFLECTION\n[2-3 sentences about their spiritual journey]\n\nPATTERNS OBSERVED\n[2-3 emotional patterns]\n\nYOUR STRENGTHS\n[2-3 positive observations]\n\nGUIDANCE FOR NEXT MONTH\n[2-3 Islamic suggestions]\n\nCLOSING DUA\n[A relevant verse or hadith with brief commentary]";
+      const r=await fetch("/.netlify/functions/reflect",{
         method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,
-          messages:[{role:"user",content:"You are a compassionate Islamic spiritual mentor. Analyse these journal entries from "+mlbl(sel)+" and provide a meaningful reflection in English.\n\nJOURNAL ENTRIES:\n"+lines+"\n\nRespond in this format (no markdown):\n\nTHIS MONTHS REFLECTION\n[2-3 sentences about their spiritual journey]\n\nPATTERNS OBSERVED\n[2-3 emotional patterns]\n\nYOUR STRENGTHS\n[2-3 positive observations]\n\nGUIDANCE FOR NEXT MONTH\n[2-3 Islamic suggestions]\n\nCLOSING DUA\n[A relevant verse or hadith with brief commentary]"}]
-        })
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({prompt})
       });
       const data=await r.json();
-      if(data.error){setErr("API error: "+data.error.message);setBusy(false);return;}
-      const txt=(data.content||[]).map(b=>b.text||"").join("");
+      if(data.error){setErr("Error: "+data.error);setBusy(false);return;}
+      const txt=data.text||"";
       if(!txt) throw new Error("No response");
       onSave(sel,{text:txt,generated:new Date().toISOString(),count:me.length});
     }catch(e){setErr("Error: "+(e.message||"Please try again."));}
