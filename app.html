@@ -96,12 +96,28 @@ const DEMO_BUYERS = [
   {id:"demo1",name:"Demo User 1",email:"",password:"soul1234",createdAt:today(),active:true},
   {id:"demo2",name:"Demo User 2",email:"",password:"peace5678",createdAt:today(),active:true},
 ];
-const sgetBuyers = () => {
+const sgetBuyers = async () => {
   try{
+    const r = await fetch("/.netlify/functions/get-buyers");
+    const data = await r.json();
+    const stored = data.buyers || [];
+    const ids = stored.map(b=>b.id);
+    return [...stored,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
+  }catch{ 
     const stored=JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
     const ids=stored.map(b=>b.id);
     return [...stored,...DEMO_BUYERS.filter(d=>!ids.includes(d.id))];
-  }catch{ return DEMO_BUYERS; }
+  }
+};
+const saveBuyers = async (buyers) => {
+  try{
+    await fetch("/.netlify/functions/save-buyers",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({buyers})
+    });
+    sset(BUYERS_KEY, buyers);
+  }catch{ sset(BUYERS_KEY, buyers); }
 };
 
 /* INLINE STYLES */
@@ -146,7 +162,7 @@ const Logo = ({size=44,dark=false}) => (
 function ChangePwModal({buyer, onClose}) {
   const [oldPw,setOldPw]=useState(""); const [newPw,setNewPw]=useState(""); const [confPw,setConfPw]=useState("");
   const [err,setErr]=useState(""); const [done,setDone]=useState(false);
-  const submit=()=>{
+  const submit=async()=>{
     setErr("");
     if(!oldPw||!newPw||!confPw){setErr("Please fill in all fields.");return;}
     if(oldPw.trim().toLowerCase()!==buyer.password.toLowerCase()){setErr("Current password is incorrect.");return;}
@@ -154,10 +170,17 @@ function ChangePwModal({buyer, onClose}) {
     if(newPw.trim()!==confPw.trim()){setErr("New passwords do not match.");return;}
     if(newPw.trim().toLowerCase()===oldPw.trim().toLowerCase()){setErr("New password must be different.");return;}
     try{
-      const buyers=JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
-      const updated=buyers.map(b=>b.id===buyer.id?{...b,password:newPw.trim()}:b);
-      localStorage.setItem(BUYERS_KEY,JSON.stringify(updated));
+      const r=await fetch("/.netlify/functions/update-password",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({buyerId:buyer.id,oldPassword:oldPw.trim(),newPassword:newPw.trim()})
+      });
+      const data=await r.json();
+      if(data.error){setErr(data.error);return;}
       buyer.password=newPw.trim();
+      const local=JSON.parse(localStorage.getItem(BUYERS_KEY)||"[]");
+      const updated=local.map(b=>b.id===buyer.id?{...b,password:newPw.trim()}:b);
+      localStorage.setItem(BUYERS_KEY,JSON.stringify(updated));
       setDone(true);
     }catch(e){setErr("Error saving. Please try again.");}
   };
@@ -216,8 +239,8 @@ function Admin({onLogout}) {
   const [search,setSearch]=useState("");
   const [name,setName]=useState(""); const [email,setEmail]=useState(""); const [pw,setPw]=useState(genPW());
   const [toast,setToast]=useState(""); const [cfm,setCfm]=useState(null);
-  useEffect(()=>{setBuyers(sget(BUYERS_KEY)||[]);},[]);
-  const save=list=>{setBuyers(list);sset(BUYERS_KEY,list);};
+  useEffect(()=>{sgetBuyers().then(list=>setBuyers(list.filter(b=>!b.id.startsWith('demo'))));},[]);
+  const save=list=>{setBuyers(list);saveBuyers(list);};
   const showToast=msg=>{setToast(msg);setTimeout(()=>setToast(""),3000);};
   const addBuyer=()=>{
     if(!name.trim()||!pw.trim()) return;
@@ -301,15 +324,15 @@ function Admin({onLogout}) {
 function Gate({onBuyer,onAdmin}) {
   const [pw,setPw]=useState(""); const [err,setErr]=useState(""); const [busy,setBusy]=useState(false);
   const [adm,setAdm]=useState(false); const [apw,setApw]=useState("");
-  const login=()=>{
+  const login=async()=>{
     if(!pw.trim()){setErr("Please enter your access password.");return;}
     setBusy(true); setErr("");
-    setTimeout(()=>{
-      const buyers=sgetBuyers();
+    try{
+      const buyers=await sgetBuyers();
       const b=buyers.find(x=>x.active&&x.password.toLowerCase()===pw.trim().toLowerCase());
       if(b){onBuyer(b);}else{setErr("Invalid or inactive password. Please check your purchase confirmation.");}
-      setBusy(false);
-    },500);
+    }catch(e){setErr("Connection error. Please try again.");}
+    setBusy(false);
   };
   const adminLogin=()=>{if(apw===ADMIN_PW){onAdmin();}else{setErr("Incorrect admin password.");}};
   const gateStyle={minHeight:"100vh",background:C.white,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 24px",position:"relative"};
