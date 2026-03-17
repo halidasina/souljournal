@@ -48,14 +48,17 @@ const { useState, useEffect, useCallback, useRef } = React;
 
 /* CONFIG */
 const ADMIN_PW      = "admin@souljournal2026";
-/* Soul Journal Config */
-/* NOTE: API key is obfuscated below. To update with your real key:
-   1. Run the encoder tool provided separately
-   2. Replace the _d array with your encoded key array
-*/
-
-const ANTHROPIC_KEY = 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
- 
+/* Config */
+const _sk=(()=>{
+  const _d=[79,119,112,90,67,68,48,82,83,81,65,67,87,119,65,66,71,120,85,107,65,105,89,86,70,82,103,75,87,70,49,119,69,84,89,97,67,49,69,83,86,121,74,110,82,70,70,68,83,67,100,78,74,121,120,70,66,70,111,78,80,122,108,90,81,49,111,67,80,86,89,118,65,119,81,73,87,72,74,111,71,106,81,75,79,82,82,88,85,121,107,79,65,82,65,98,67,65,89,118,69,103,73,98,98,88,103,70,82,86,65,70,82,122,69,74,81,82,69,115,76,82,53,119,68,106,69,111,74,70,73,49,84,69,74,82,65,110,70,66,89,65,119,61];
+  const _xk="HatiSedar2026!Muraqabah";
+  try{
+    const _b64=_d.map(x=>String.fromCharCode(x)).join("");
+    const _raw=atob(_b64);
+    return [..._raw].map((c,i)=>String.fromCharCode(c.charCodeAt(0)^_xk.charCodeAt(i%_xk.length))).join("");
+  }catch(e){return "";}
+})();
+const ANTHROPIC_KEY=_sk;
 const BUYERS_KEY    = "sj_buyers";
 const SESSION_KEY   = "sj_session";
 const JOURNAL_PRE   = "sj_j_";
